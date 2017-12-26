@@ -2,6 +2,7 @@ import numpy as np
 from scipy.sparse import coo_matrix, load_npz
 import math
 
+
 def train(R, iterations, k, alpha=0.0001, beta=0.001, target_error=None):
     """
     R is scipy.sparse.coo_matrix
@@ -38,23 +39,39 @@ def train(R, iterations, k, alpha=0.0001, beta=0.001, target_error=None):
     Q = np.mat(np.random.random([k, n]))
     R_indices = np.mat([R.row, R.col]).transpose()
     R_data = R.data
+    error = R.copy()
+    print("compute first error...")
+    for c in range(R_indices.shape[0]):
+        i = R_indices[c, 0]
+        j = R_indices[c, 1]
+        error[i, j] = R_data[c] - _sum_kPQ(i, j)
+        if (c + 1) % 100000 == 0:
+            print("error iter %d in %d" % ((c + 1), R_indices.shape[0]))
 
     for i_count in range(iterations):
         print("iteration %d..." % (i_count+1))
+        print("begin to iterate...")
         for c in range(R_indices.shape[0]):
             i = R_indices[c, 0]
             j = R_indices[c, 1]
-            P_next = P
-            Q_next = Q
-            e = R_data[c] - _sum_kPQ(i, j)
+            P_next = P.copy()
+            Q_next = Q.copy()
+            e = error.data[c]
             for kk in range(k):
                 P_next[i, kk] = P[i, kk] - 2*alpha*(e*Q[kk, j] - beta*P[i, kk])
                 Q_next[kk, j] = Q[kk, j] - 2*alpha*(e*P[i, kk] - beta*Q[kk, j])
                 P = P_next
                 Q = Q_next
             if (c+1) % 100000 == 0:
-                print("point iter %d in %d" % ((c+1), R_indices.shape[0]))
-        loss = _loss()
+                print("gradient iter %d in %d" % ((c+1), R_indices.shape[0]))
+        print("begin to compute loss")
+        for c in range(R_indices.shape[0]):
+            i = R_indices[c, 0]
+            j = R_indices[c, 1]
+            error[i, j] = R_data[c] - _sum_kPQ(i, j)
+            loss = loss + math.sqrt((R_data[c] - _sum_kPQ(i, j))**2)
+            if (c+1) % 100000 == 0:
+                print("loss iter %d in %d" % ((c+1), R_indices.shape[0]))
         if target_error is not None:
             if loss < target_error:
                 print("finish training at iteration %d" % (i_count + 1))
