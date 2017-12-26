@@ -4,8 +4,7 @@ Prepare train.csv data to build ranking matrix
 
 import csv
 import os
-import numpy as np
-from scipy.sparse import csr_matrix, save_npz
+from scipy.sparse import lil_matrix, save_npz
 
 train_target_factor = {
     "0": 1,
@@ -43,8 +42,9 @@ train_source_type_score = {
     "song-based-playlist": 2,
     "radio": 1,
     "song": 3,
-    "others" :0
+    "others": 0
 }
+
 
 def build_user_lookup(store_filename=None):
     user_count = 0
@@ -119,6 +119,7 @@ def compute_score(source_system_tab, source_screen_name, source_type, target):
     factor = _get_score(target, train_target_factor)
     return (score1 + score2 + score3) * factor
 
+
 if __name__ == "__main__":
     print("preparing user data...")
     user_count, user_lookup = build_user_lookup("./data/user_lookup.csv")
@@ -126,10 +127,16 @@ if __name__ == "__main__":
     song_count, song_lookup = build_song_lookup("./data/song_lookup.csv")
 
     _, train_data = load_csv("./dataset/train.csv")
-    R = csr_matrix((user_count, song_count))
-    for train_item in train_data:
-        user_index = user_lookup[train_item[0]]
-        song_index = song_lookup[train_item[1]]
-        score = compute_score(train_item[2], train_item[3], train_item[4], train_item[5])
+    R = lil_matrix((user_count, song_count))
+    print("begin to compute score")
+    for i in range(len(train_data)):
+        try:
+            user_index = user_lookup[train_data[i][0]]
+            song_index = song_lookup[train_data[i][1]]
+        except KeyError:
+            continue
+        score = compute_score(train_data[i][2], train_data[i][3], train_data[i][4], train_data[i][5])
         R[user_index, song_index] = R[user_index, song_index] + score
-    save_npz("./data/r.npz", R)
+        if (i+1) % 100000 == 0:
+            print("finish computing %d in %d" % ((i+1), len(train_data)))
+    save_npz("./data/r.npz", R.tocsr())
