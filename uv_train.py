@@ -26,17 +26,23 @@ tf.flags.DEFINE_string("q_file", "./data/q-%d.npz" % FLAGS.iterations,
                        "path to trained Q matrix")
 
 
+def convert_sparse_matrix_to_sparse_tensor(X, dtype=tf.float32):
+    coo = X.tocoo()
+    indices = np.mat([coo.row, coo.col]).transpose()
+    return tf.SparseTensor(indices, coo.data, coo.shape, dtype=dtype)
+
+
 def get_model(user_num, song_num):
-    Q = tf.Variable(initial_value=tf.random_normal([user_num, FLAGS.K], dtype=tf.float16),
-                    dtype=tf.float16,
+    Q = tf.Variable(initial_value=tf.random_normal([user_num, FLAGS.K], dtype=tf.float32),
+                    dtype=tf.float32,
                     name="Q_matrix")
-    P = tf.Variable(initial_value=tf.random_normal([song_num, FLAGS.K], dtype=tf.float16),
-                    dtype=tf.float16,
+    P = tf.Variable(initial_value=tf.random_normal([song_num, FLAGS.K], dtype=tf.float32),
+                    dtype=tf.float32,
                     name="P_matrix")
     # prediction R
     R_ = tf.matmul(Q, P, transpose_b=True, name="R_predict")
     # real R
-    R = load_npz(FLAGS.r_file).toarray().astype(np.float16)
+    R = convert_sparse_matrix_to_sparse_tensor(load_npz(FLAGS.r_file))
     mask = R.astype(bool)
     objective = tf.boolean_mask(tf.pow(R - R_, 2), mask, name="masked_objective")
     loss = tf.reduce_sum(tf.reduce_sum(objective, axis=0), axis=0, name="loss")
@@ -60,4 +66,3 @@ if __name__ == "__main__":
     tf.logging.info("saving P and Q matrix...")
     p.savez(FLAGS.p_file)
     q.savez(FLAGS.q_file)
-
