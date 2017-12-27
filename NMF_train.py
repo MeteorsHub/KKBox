@@ -48,7 +48,7 @@ def train(R, iterations, k, alpha=0.0001, beta=0.001, target_error=None):
                 Q_next[kk, j] = Q[kk, j] - 2*alpha*(e*P[i, kk] - beta*Q[kk, j])
                 P = P_next
                 Q = Q_next
-            if (c+1) % 100000 == 0:
+            if (c+1) % 1000 == 0:
                 print("finish point iter %d in %d" % ((c+1), R_indices.shape[0]))
         print("begin to compute loss...")
         loss = 0
@@ -56,7 +56,7 @@ def train(R, iterations, k, alpha=0.0001, beta=0.001, target_error=None):
             i = R_indices[c, 0]
             j = R_indices[c, 1]
             error.data[c] = R_data[c] - _sum_kPQ(i, j)
-            loss = loss + math.abs(error.data[c])
+            loss = loss + math.fabs(error.data[c])
             if (c+1) % 100000 == 0:
                 print("finish loss iter %d in %d" % ((c+1), R_indices.shape[0]))
 
@@ -70,7 +70,8 @@ def train(R, iterations, k, alpha=0.0001, beta=0.001, target_error=None):
 
 
 if __name__ == "__main__":
-    R = load_npz("data/r.npz").tocoo()
-    P, Q = train(R, 100000, k=5)
-    print(P)
-    print(Q)
+    R = load_npz("data/r-100000.npz").tocoo()
+    P, Q = train(R, 1, k=50)
+    np.savez("./data/p-100000.npz", P)
+    np.savez("./data/q-100000.npz", Q)
+    # P = np.load("./data/p-1000000.npz")['arr_0']

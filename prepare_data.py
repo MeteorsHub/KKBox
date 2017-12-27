@@ -139,4 +139,7 @@ if __name__ == "__main__":
         R[user_index, song_index] = R[user_index, song_index] + score
         if (i+1) % 100000 == 0:
             print("finish computing %d in %d" % ((i+1), len(train_data)))
-    save_npz("./data/r.npz", R.tocsr())
+        # take only about 1/80 of the training data
+        if i > 100000:
+            break
+    save_npz("./data/r-100000.npz", R.tocsr())
