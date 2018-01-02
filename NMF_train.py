@@ -2,6 +2,7 @@ import numpy as np
 from scipy.sparse import coo_matrix, load_npz
 import math
 
+
 def train(R, iterations, k, alpha=0.0001, beta=0.001, target_error=None):
     """
     R is scipy.sparse.coo_matrix
@@ -25,6 +26,14 @@ def train(R, iterations, k, alpha=0.0001, beta=0.001, target_error=None):
     Q = np.mat(np.random.random([k, n]))
     R_indices = np.mat([R.row, R.col]).transpose()
     R_data = R.data
+    error = R.copy()
+    print("compute first error...")
+    for c in range(R_indices.shape[0]):
+        i = R_indices[c, 0]
+        j = R_indices[c, 1]
+        error[i, j] = R_data[c] - _sum_kPQ(i, j)
+        if (c + 1) % 100000 == 0:
+            print("error iter %d in %d" % ((c + 1), R_indices.shape[0]))
 
     error = R.copy()
     print("begin to compute first error...")
@@ -37,6 +46,7 @@ def train(R, iterations, k, alpha=0.0001, beta=0.001, target_error=None):
 
     for i_count in range(iterations):
         print("iteration %d..." % (i_count+1))
+        print("begin to iterate...")
         for c in range(R_indices.shape[0]):
             i = R_indices[c, 0]
             j = R_indices[c, 1]
