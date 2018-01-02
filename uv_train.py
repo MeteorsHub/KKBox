@@ -14,22 +14,16 @@ tf.flags.DEFINE_float("learning_rate", 0.01,
                       "learning rate")
 tf.flags.DEFINE_string("strategy", "sgd",
                        "training strategy")
-tf.flags.DEFINE_string("r_file", "./data/r.npz",
+tf.flags.DEFINE_string("r_file", "./data/r-100000.npy",
                        "path to R matrix file")
-tf.flags.DEFINE_string("user_file", "./data/user_lookup.csv",
+tf.flags.DEFINE_string("user_file", "./data/user_new_lookup.csv",
                        "path to user info file")
-tf.flags.DEFINE_string("song_file", "./data/song_lookup.csv",
+tf.flags.DEFINE_string("song_file", "./data/song_new_lookup.csv",
                        "path to song info file")
 tf.flags.DEFINE_string("p_file", "./data/p-%d.npz" % FLAGS.iterations,
                        "path to trained P matrix")
 tf.flags.DEFINE_string("q_file", "./data/q-%d.npz" % FLAGS.iterations,
                        "path to trained Q matrix")
-
-
-def convert_sparse_matrix_to_sparse_tensor(X, dtype=tf.float32):
-    coo = X.tocoo()
-    indices = np.mat([coo.row, coo.col]).transpose()
-    return tf.SparseTensor(indices, coo.data, coo.shape, dtype=dtype)
 
 
 def get_model(user_num, song_num):
@@ -42,8 +36,9 @@ def get_model(user_num, song_num):
     # prediction R
     R_ = tf.matmul(Q, P, transpose_b=True, name="R_predict")
     # real R
-    R = convert_sparse_matrix_to_sparse_tensor(load_npz(FLAGS.r_file))
+    R = np.load(FLAGS.r_file)
     mask = R.astype(bool)
+    R = tf.constant(R, dtype=tf.float32, name="R")
     objective = tf.boolean_mask(tf.pow(R - R_, 2), mask, name="masked_objective")
     loss = tf.reduce_sum(tf.reduce_sum(objective, axis=0), axis=0, name="loss")
 
